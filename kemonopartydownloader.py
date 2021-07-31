@@ -19,7 +19,6 @@ def downloadfile(i, x, count):
     else:
         filesize = 0
     if str(filesize) != req.head(f"https://data.kemono.party{x['path']}").headers["Content-Length"]:
-        print("unfinished download")
         with req.get(f"https://data.kemono.party{x['path']}", stream=True, headers={"Range": f"bytes={filesize}-"}) as r:
             r.raise_for_status()
             with open(filename, "ab") as f:
@@ -42,20 +41,19 @@ args = parser.parse_args()
 req = requests.Session()
 
 if args.proxy:
+    req.proxies = {}
     if args.proxy[:6] == "socks5":
         httpproxy = args.proxy
         httpsproxy = args.proxy
-    elif args.proxy[0:5] == "https":
+    elif args.proxy[:5] == "https":
         httpsproxy = args.proxy
-    elif args.proxy[0:4] == "http":
+    elif args.proxy[:4] == "http":
         httpproxy = args.proxy
     else:
         print("unknown proxy format! defaulting to HTTP...")
         httpproxy = args.proxy
     if httpproxy:
-        req.proxies = {
-            "http": httpproxy,
-        }
+        req.proxies["http"] = httpproxy
     if httpsproxy:
         req.proxies["https"] = httpsproxy
 
