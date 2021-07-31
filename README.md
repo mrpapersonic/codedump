@@ -26,7 +26,7 @@ originally created to extract all of the yuru yuri intros
 
 ### [kemonopartydownloader.py](kemonopartydownloader.py)
 made this when i was bored<br>
-simple [kemono.party](https://kemono.party) downloader, supports proxies and redoing unfinished downloads<br>
+simple [kemono.party](https://kemono.party) downloader, supports proxies and continuing unfinished downloads<br>
 requires cookies because of DDoS-GUARD, just use a cookies.txt compatible file
 
 ### [mmltonsf.bat](mmltonsf.bat)
