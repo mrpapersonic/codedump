@@ -1,23 +1,28 @@
 # example args.url: https://kemono.party/fanbox/user/5375435/post/2511461
-import json
-import urllib.request
-import os
-import requests  # pip install requests
 import argparse
 import http.cookiejar
+import json
+import os
+import re
+import requests  # pip install requests
 import time
+import unicodedata
+import urllib.request
 from urllib.error import HTTPError
 
+def sanitize(filename):
+    return re.sub("^[\w\-. ]+$", "_", filename)
+
 def downloadfile(i, x, count):
-    with req.get(f"https://data.kemono.party{x['path']}", stream=True) as r:
-        r.raise_for_status()
-        if not os.path.exists("{4}\\{0}_{1}p_{2}_{3}".format(i["id"], count, i["title"], os.path.basename(x["path"]), output)):
-            with open("{4}\\{0}_{1}p_{2}_{3}".format(i["id"], count, i["title"], os.path.basename(x["path"]), output), "wb") as f:
+    if not os.path.exists("{4}\\{0}_{1}p_{2}_{3}".format(i["id"], count, sanitize(i["title"]), os.path.basename(x["path"]), output)) or str(os.stat("{4}\\{0}_{1}p_{2}_{3}".format(i["id"], count, sanitize(i["title"]), os.path.basename(x["path"]), output)).st_size) != req.head(f"https://data.kemono.party{x['path']}").headers["Content-Length"]:
+        with req.get(f"https://data.kemono.party{x['path']}", stream=True) as r:
+            r.raise_for_status()
+            with open("{4}\\{0}_{1}p_{2}_{3}".format(i["id"], count, sanitize(i["title"]), os.path.basename(x["path"]), output), "wb") as f:
                 for chunk in r.iter_content(chunk_size=4096):
                     f.write(chunk)
-                print("image {0} successfully downloaded!".format(count))
-        else:
-            print("image {0} already downloaded! skipping...".format(count))
+                print("image " + str(count) + " successfully downloaded!")
+    else:
+        print("image " + str(count) + " already downloaded!")
 
 parser = argparse.ArgumentParser(description="Downloads (deleted) videos from YTPMV creators")
 parser.add_argument("-u", "--url", help="user URL", metavar='<url>', required=True)
@@ -83,10 +88,7 @@ for i in userdata:
     count = 0
     for x in i["attachments"]:
         count += 1
-        if os.path.exists("{4}\\{0}_{1}p_{2}_{3}".format(int(i["id"]) - 1, count, i["title"], os.path.basename(x["path"]), output)):
-            print("image {0} already downloaded! skipping...".format(count))
-            continue
-        while not os.path.exists("{4}\\{0}_{1}p_{2}_{3}".format(int(i["id"]) - 1, count, i["title"], os.path.basename(x["path"]), output)):
+        while not os.path.exists("{4}\\{0}_{1}p_{2}_{3}".format(int(i["id"]) - 1, count, sanitize(i["title"]), os.path.basename(x["path"]), output)):
             try:
                 downloadfile(i, x, count)
                 break
