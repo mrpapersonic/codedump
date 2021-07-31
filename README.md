@@ -1,5 +1,9 @@
 # code dump
 
+### [channeldownloader.py](channeldownloader.py)
+a YTPMV channel downloader, pulls from multiple sources (youtube-dl, internetarchive, and waybackmachine)<br>
+requires a [YTPMV_Database](https://finnrepo.a2hosted.com/YTPMV_Database) compatible JSON file
+
 ### [decodeurl.cpp](decodeurl.cpp)
 pretty self explanatory, compiled with libcurl and the likes
 
@@ -19,6 +23,11 @@ meant to be used as reference for a possible future beta 1.7.3 (client-side) mod
 
 ### [intro.py](intro.py)
 originally created to extract all of the yuru yuri intros
+
+### [kemonopartydownloader.py](kemonopartydownloader.py)
+made this when i was bored<br>
+simple [kemono.party](https://kemono.party) downloader, supports proxies<br>
+requires cookies because of DDoS-GUARD, just use a cookies.txt compatible file
 
 ### [mmltonsf.bat](mmltonsf.bat)
 this is a conversion of a script from bash to batch, it just makes compiling nsfs from mmls easier
