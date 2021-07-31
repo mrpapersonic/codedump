@@ -1,28 +1,36 @@
 # example args.url: https://kemono.party/fanbox/user/5375435/post/2511461
 import argparse
 import http.cookiejar
-import json
 import os
 import re
 import requests  # pip install requests
 import time
-import unicodedata
-import urllib.request
 from urllib.error import HTTPError
 
+
 def sanitize(filename):
-    return re.sub("^[\w\-. ]+$", "_", filename)
+    return re.sub(r"[\/:*?\"<>|]", "_", filename)
+
 
 def downloadfile(i, x, count):
-    if not os.path.exists("{4}\\{0}_{1}p_{2}_{3}".format(i["id"], count, sanitize(i["title"]), os.path.basename(x["path"]), output)) or str(os.stat("{4}\\{0}_{1}p_{2}_{3}".format(i["id"], count, sanitize(i["title"]), os.path.basename(x["path"]), output)).st_size) != req.head(f"https://data.kemono.party{x['path']}").headers["Content-Length"]:
-        with req.get(f"https://data.kemono.party{x['path']}", stream=True) as r:
+    filename = "{4}\\{0}_{1}p_{2}_{3}".format(i["id"], count, sanitize(i["title"]), os.path.basename(x["path"]), output)
+    if os.path.exists(filename):
+        filesize = os.stat(filename).st_size
+    else:
+        filesize = 0
+    if str(filesize) != req.head(f"https://data.kemono.party{x['path']}").headers["Content-Length"]:
+        print("unfinished download")
+        with req.get(f"https://data.kemono.party{x['path']}", stream=True, headers={"Range": f"bytes={filesize}-"}) as r:
             r.raise_for_status()
-            with open("{4}\\{0}_{1}p_{2}_{3}".format(i["id"], count, sanitize(i["title"]), os.path.basename(x["path"]), output), "wb") as f:
+            with open(filename, "ab") as f:
                 for chunk in r.iter_content(chunk_size=4096):
                     f.write(chunk)
                 print("image " + str(count) + " successfully downloaded!")
+        return
     else:
         print("image " + str(count) + " already downloaded!")
+        return
+
 
 parser = argparse.ArgumentParser(description="Downloads (deleted) videos from YTPMV creators")
 parser.add_argument("-u", "--url", help="user URL", metavar='<url>', required=True)
