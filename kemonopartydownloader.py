@@ -18,13 +18,15 @@ def get_google_drive_subfolder_ids(link):
     drivefiles = re.findall(r"\[\"(.{33}?)\",\[\"(.{33}?)\"\],\"(.+?)\",\"(.+?)\"", gdrive)  # format: ["id","name","mimetype"
     seen = set()
     unique_ids = []
+    names = []
     for files in drivefiles:
         if files[3] != "application/vnd.google-apps.folder":
             continue
         if files[0] not in seen:
             unique_ids.append(files[0])
+            names.append(files[2])
             seen.add(files[0])
-    return unique_ids
+    return unique_ids, names
 
 
 def unzip(src_path, dst_dir, pwd=None):
@@ -69,7 +71,7 @@ def download_from_dropbox(link):
         os.remove(filename)
 
 
-def download_file_from_google_drive(id):  # https://stackoverflow.com/questions/25010369/wget-curl-large-file-from-google-drive/39225039 ;)
+def download_file_from_google_drive(id, dir=""):  # https://stackoverflow.com/questions/25010369/wget-curl-large-file-from-google-drive/39225039 ;)
     def get_confirm_token(response):
         for key, value in response.cookies.items():
             if key.startswith('download_warning'):
@@ -82,13 +84,15 @@ def download_file_from_google_drive(id):  # https://stackoverflow.com/questions/
         CHUNK_SIZE = 32768
         if not os.path.exists(output + "\\Drive - " + sanitize(i["title"])):
             os.makedirs(output + "\\Drive - " + sanitize(i["title"]))
-        destination = output + "\\Drive - " + sanitize(i["title"]) + "\\" + sanitize(response.headers["Content-Disposition"].split("'")[-1])
+        if not os.path.exists(output + "\\Drive - " + sanitize(i["title"]) + "\\" + dir):
+            os.makedirs(output + "\\Drive - " + sanitize(i["title"]) + "\\" + dir)
+        destination = output + "\\Drive - " + sanitize(i["title"]) + "\\" + dir + "\\" + sanitize(response.headers["Content-Disposition"].split("'")[-1])
         if os.path.exists(destination):
             filesize = os.stat(destination).st_size
         else:
             filesize = 0
 
-        if os.path.exists(destination):
+        if os.path.exists(destination) and filesize == int(response.headers["Content-Range"].partition('/')[-1]):
             print("  " + os.path.basename(destination) + " already downloaded!")
             return
 
@@ -98,7 +102,7 @@ def download_file_from_google_drive(id):  # https://stackoverflow.com/questions/
                     f.write(chunk)
                     amountdone += CHUNK_SIZE
                     print("  downloading {0}: ".format(os.path.basename(destination)) + " " + str(round(filesize + amountdone / int(response.headers["Content-Range"].partition('/')[-1])) * 100) + "%\r", end="")
-            print("  downloaded {0}".format(os.path.basename(destination)) + ": 100%    ")
+            print("  downloaded  {0}".format(os.path.basename(destination)) + ": 100%    ")
 
     URL = "https://docs.google.com/uc?export=download"
 
@@ -110,7 +114,7 @@ def download_file_from_google_drive(id):  # https://stackoverflow.com/questions/
 
     response = session.get(URL, headers=headers, params={'id': id}, stream=True)
 
-    while response.status_code == "403":
+    while response.status_code == 403:
         time.sleep(30)
         response = session.get(URL, headers=headers, params={'id': id}, stream=True)
 
@@ -182,22 +186,26 @@ def parse_json(i, count):
     for url in unique_urls:
         if url.startswith("https://drive.google.com/drive/folders/"):
             # Google Drive folder downloading
-            # NOTE: this doesn't currently support subfolders! they seem like a pain in the ass to implement without the api...
             print(" Google Drive link found! attempting to download its files...")
-            unique_ids = [url.split("?")[0].split("/")[-1]]
-            drive_ids_to_download = []
-            while len(unique_ids) > 0:
+            unique_ids = [url.split("/")[-1].split("?")[0]]
+            drive_ids_to_download = [unique_ids[0]]
+            drive_id_names = {
+                unique_ids[0]: ".",
+            }
+            while len(unique_ids) > 1:
                 for myid in unique_ids:
-                    unique_ids = get_google_drive_subfolder_ids("https://drive.google.com/drive/folders/" + myid)
-                    for ids in unique_ids:
-                        drive_ids_to_download.append(ids)
+                    unique_ids, names = get_google_drive_subfolder_ids("https://drive.google.com/drive/folders/" + myid)
+                    for xd in range(len(unique_ids)):
+                        drive_ids_to_download.append(unique_ids[xd])
+                        drive_id_names[unique_ids[xd]] = names[xd]
             for ids in drive_ids_to_download:
                 gdrive = requests.get("https://drive.google.com/drive/folders/" + ids).text
                 driveids = re.findall(r'jsdata=" M2rjcd;_;\d (?:.+?);(.+?);', gdrive)
                 for driveid in driveids:
                     if not driveid.startswith("driveweb|"):
-                        download_file_from_google_drive(driveid)
+                        download_file_from_google_drive(driveid, dir=drive_id_names[ids])
         elif url.startswith("https://drive.google.com/file/"):
+            print(" Google Drive link found! attempting to download its files...")
             download_file_from_google_drive(url.split("?")[0].split("/")[-2])
     for x in i["attachments"]:
         count += 1
